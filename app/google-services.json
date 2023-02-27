@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "147493606712",
+    "project_id": "vst-ocr-ef21f",
+    "storage_bucket": "vst-ocr-ef21f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:147493606712:android:ceee6aef03997827105dcd",
+        "android_client_info": {
+          "package_name": "com.android.vst"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "147493606712-iildrfd1udssm4ei79d8jkave7bmr38r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRqQMNtar44_tD00wJ9vNFv-gcww5ap_0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "147493606712-iildrfd1udssm4ei79d8jkave7bmr38r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
