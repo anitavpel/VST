@@ -34,9 +34,30 @@ import com.google.android.gms.vision.text.TextRecognizer;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+/*
+
+ */
+
+
+import android.os.Environment;
+import android.view.View;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+
+import java.io.File;
+import java.io.FileOutputStream;
+
 public class MainActivity extends AppCompatActivity {
-    private EditText mResultEt;
+    private EditText mResultEt,fileNameEditText;
     private ImageView mPreviewIv;
+    String fileName;
+    private File filePath;
+
+
+
 
     //Permission Code
     private static final int CAMERA_REQUEST_CODE = 200;
@@ -47,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
     String cameraPermission[];
     String storagePermission[];
 
+
     Uri image_uri;
 
     @SuppressLint("MissingInflatedId")
@@ -54,18 +76,24 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE}, PackageManager.PERMISSION_GRANTED);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setSubtitle("Click + button to insert image");
 
-        mResultEt   = findViewById(R.id.resultEt);
-        mPreviewIv  = findViewById(R.id.imageIv);
+        mResultEt = findViewById(R.id.resultEt);
+        mPreviewIv = findViewById(R.id.imageIv);
+        fileNameEditText = findViewById(R.id.file_name_edit_text);
+        fileName = fileNameEditText.getText().toString();
 
         //camera permission
-        cameraPermission = new String[] {Manifest.permission.CAMERA,
+        cameraPermission = new String[]{Manifest.permission.CAMERA,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE};
         //storage permission
-        storagePermission = new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE};
+        storagePermission = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE};
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -210,6 +238,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     //handle image result
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -265,9 +294,73 @@ public class MainActivity extends AppCompatActivity {
                 Exception error = result.getError();
                 Toast.makeText(this, "" + error, Toast.LENGTH_SHORT).show();
             }
+
+
         }
+
 
     }
 
+    public void buttonCreateExcel(View view) {
 
+
+        String fileName = fileNameEditText.getText().toString().trim();
+
+
+        if (fileName.isEmpty()) {
+            Toast.makeText(MainActivity.this, "Please enter a file name", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        filePath = new File(Environment.getExternalStorageDirectory() + "/ExcelFiles/" + fileName + ".xlsx");
+        if (!filePath.getParentFile().exists()) {
+            filePath.getParentFile().mkdir(); // Create the folder if it doesn't exist
+        }
+
+        if (filePath.exists()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Warning")
+                    .setMessage("A file with the same name already exists. Do you want to overwrite it?")
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) {
+                            createExcelFile(filePath);
+                        }
+                    })
+                    .setNegativeButton(android.R.string.no, null).show();
+        } else {
+            createExcelFile(filePath);
+        }
+    }
+
+    private void createExcelFile(File file ){
+
+
+
+        HSSFWorkbook hssfWorkbook = new HSSFWorkbook();
+        HSSFSheet hssfSheet = hssfWorkbook.createSheet("Invoice Sheet");
+
+        HSSFRow hssfRow = hssfSheet.createRow(0);
+        HSSFCell hssfCell = hssfRow.createCell(0);
+
+        hssfCell.setCellValue(mResultEt.getText().toString());
+
+        try {
+
+
+
+            FileOutputStream fileOutputStream = new FileOutputStream(filePath);
+            hssfWorkbook.write(fileOutputStream);
+
+            if (fileOutputStream != null) {
+                fileOutputStream.flush();
+                fileOutputStream.close();
+                Toast.makeText(MainActivity.this, "Excel file created successfully", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(MainActivity.this, "Error creating Excel file", Toast.LENGTH_SHORT).show();
+        }
+
+    }
 }

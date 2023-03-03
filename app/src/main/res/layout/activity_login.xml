@@ -4,8 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/background"
-    tools:context=".Register">
+    android:background="@drawable/background">
 
     <TextView
         android:id="@+id/textView"
@@ -95,18 +94,6 @@
         app:layout_constraintTop_toBottomOf="@+id/password"
         app:layout_constraintVertical_bias="0.175" />
 
-    <TextView
-        android:id="@+id/RegisterBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="New User? Create Account!"
-        android:textColor="#F8F2F2"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/LoginBtn"
-        app:layout_constraintVertical_bias="0.139" />
 
     <ProgressBar
         android:id="@+id/progressBar"
@@ -132,6 +119,5 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/RegisterBtn"
-        app:layout_constraintVertical_bias="0.169" />
+        app:layout_constraintTop_toBottomOf="@+id/LoginBtn" />
 </androidx.constraintlayout.widget.ConstraintLayout>

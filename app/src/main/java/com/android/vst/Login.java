@@ -41,7 +41,6 @@ public class Login extends AppCompatActivity {
         Password = findViewById(R.id.password);
         progressBar = findViewById(R.id.progressBar);
         LoginBtn =findViewById(R.id.LoginBtn);
-        RegisterBtn = findViewById(R.id.RegisterBtn);
         ForgotPassword = findViewById(R.id.forgotPassword);
 
         fAuth = FirebaseAuth.getInstance();
@@ -96,16 +95,6 @@ public class Login extends AppCompatActivity {
         });
 
 
-        RegisterBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                startActivity(new Intent(getApplicationContext(),Register.class));
-
-
-
-            }
-        });
 
         ForgotPassword.setOnClickListener(new View.OnClickListener() {
             @Override

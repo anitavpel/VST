@@ -32,22 +32,23 @@
 
                     <TextView
 
-                        android:text="Result"
-                        android:textColor = "@color/black"
-                        android:textSize="20sp"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"/>
+                        android:layout_height="wrap_content"
+                        android:text="Result"
+                        android:textColor="@color/black"
+                        android:textSize="20sp" />
 
                     <EditText
 
                         android:id="@+id/resultEt"
-                        android:hint=""
-                        android:textColor = "@color/black"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
                         android:autoLink="all"
                         android:background="@null"
+                        android:hint=""
+                        android:minHeight="48dp"
                         android:padding="5dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"/>
+                        android:textColor="@color/black" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -55,9 +56,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardBackgroundColor="@android:color/white"
-                app:cardUseCompatPadding="true"
                 app:cardCornerRadius="3dp"
-                app:cardElevation="3dp">
+                app:cardElevation="3dp"
+                app:cardUseCompatPadding="true">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -66,19 +67,86 @@
                     android:padding="5dp">
 
                     <TextView
+                        android:id="@+id/preview"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
                         android:text="Image Preview"
                         android:textColor="@color/black"
-                        android:textSize="20sp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"/>
+                        android:textSize="20sp" />
 
                     <ImageView
                         android:id="@+id/imageIv"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:maxHeight="250dp"/>
+                        android:maxHeight="250dp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+
+
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@android:color/white"
+                    app:cardCornerRadius="3dp"
+                    app:cardElevation="3dp"
+                    app:cardUseCompatPadding="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="5dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="File Name"
+                            android:textColor="@color/black"
+                            android:textSize="20sp" />
+
+                        <EditText
+                            android:id="@+id/file_name_edit_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@null"
+                            android:hint="Enter file name"
+                            android:minHeight="48dp"
+                            android:padding="5dp"
+                            android:textColor="@color/black" />
+
+                    </LinearLayout>
+
+                </androidx.cardview.widget.CardView>
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="4dp"
+                    app:cardUseCompatPadding="true">
+
+                    <!-- CardView content here -->
+
+                </androidx.cardview.widget.CardView>
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Create Excel"
+                    android:layout_gravity="center_horizontal"
+                    android:onClick="buttonCreateExcel"/>
+
+
+
+            </LinearLayout>
+
         </LinearLayout>
     </ScrollView>
+
 </RelativeLayout>
