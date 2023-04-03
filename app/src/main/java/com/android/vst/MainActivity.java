@@ -23,6 +23,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.SparseArray;
 import android.view.Menu;
+
 import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -42,21 +43,24 @@ import com.theartofdev.edmodo.cropper.CropImageView;
 import android.os.Environment;
 import android.view.View;
 
+
 import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 
 import java.io.File;
 import java.io.FileOutputStream;
 
+
 public class MainActivity extends AppCompatActivity {
-    private EditText mResultEt,fileNameEditText;
+    private EditText mResultEt, fileNameEditText;
     private ImageView mPreviewIv;
     String fileName;
     private File filePath;
-
-
 
 
     //Permission Code
@@ -169,6 +173,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void pickCamera() {
+
+
         //intent to take image from camera, it will also be save to storage to get high quality image
         ContentValues values = new ContentValues();
         values.put(MediaStore.Images.Media.TITLE, "NewPick"); //title of the picture
@@ -332,23 +338,37 @@ public class MainActivity extends AppCompatActivity {
             createExcelFile(filePath);
         }
     }
-
-    private void createExcelFile(File file ){
-
-
-
+    private void createExcelFile(File file) {
         HSSFWorkbook hssfWorkbook = new HSSFWorkbook();
         HSSFSheet hssfSheet = hssfWorkbook.createSheet("Invoice Sheet");
 
-        HSSFRow hssfRow = hssfSheet.createRow(0);
-        HSSFCell hssfCell = hssfRow.createCell(0);
+        // Create header row and cell
+        HSSFRow headerRow = hssfSheet.createRow(0);
+        HSSFCell headerCell = headerRow.createCell(0);
+        headerCell.setCellValue("TAX INVOICE");
 
-        hssfCell.setCellValue(mResultEt.getText().toString());
+        // Create second row and cell for "ORIGINAL FOR RECIPIENT"
+        HSSFRow secondRow = hssfSheet.createRow(1);
+        HSSFCell secondCell = secondRow.createCell(0);
+        secondCell.setCellValue("ORIGINAL FOR RECIPIENT");
+
+        // Create third row and cell for the result text
+        HSSFRow resultRow = hssfSheet.createRow(2);
+        HSSFCell resultCell = resultRow.createCell(0);
+
+        // Get the result text from the EditText, excluding the header and second row text if present
+        String resultText = mResultEt.getText().toString().trim();
+        String headerText = "TAX INVOICE";
+        String secondRowText = "ORIGINAL FOR RECIPIENT";
+        if (resultText.toUpperCase().startsWith(headerText.toUpperCase())) {
+            resultText = resultText.substring(headerText.length()).trim();
+        }
+        if (resultText.toUpperCase().startsWith(secondRowText.toUpperCase())) {
+            resultText = resultText.substring(secondRowText.length()).trim();
+        }
+        resultCell.setCellValue(resultText);
 
         try {
-
-
-
             FileOutputStream fileOutputStream = new FileOutputStream(filePath);
             hssfWorkbook.write(fileOutputStream);
 
@@ -361,6 +381,5 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
             Toast.makeText(MainActivity.this, "Error creating Excel file", Toast.LENGTH_SHORT).show();
         }
-
     }
 }
