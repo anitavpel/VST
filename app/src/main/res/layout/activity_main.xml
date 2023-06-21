@@ -140,7 +140,8 @@
                     android:layout_height="wrap_content"
                     android:text="Create Excel"
                     android:layout_gravity="center_horizontal"
-                    android:onClick="buttonCreateExcel"/>
+                    android:onClick="buttonCreateExcel"
+                    tools:ignore="UsingOnClickInXml" />
 
 
 
