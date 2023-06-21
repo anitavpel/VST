@@ -9,17 +9,14 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -32,30 +29,27 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.ml.vision.FirebaseVision;
-import com.google.firebase.ml.vision.common.FirebaseVisionImage;
-import com.google.firebase.ml.vision.text.FirebaseVisionText;
-import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
+import com.google.android.gms.vision.Frame;
+import com.google.android.gms.vision.text.TextBlock;
+import com.google.android.gms.vision.text.TextRecognizer;
+import com.theartofdev.edmodo.cropper.CropImage;
+import com.theartofdev.edmodo.cropper.CropImageView;
 
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.util.CellRangeAddress;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private EditText mResultEt, fileNameEditText;
+    private EditText mResultEt,fileNameEditText;
     private ImageView mPreviewIv;
     String fileName;
     private File filePath;
+
+
 
 
     //Permission Code
@@ -64,21 +58,11 @@ public class MainActivity extends AppCompatActivity {
     private static final int IMAGE_PICK_GALLERY_CODE = 1000;
     private static final int IMAGE_PICK_CAMERA_CODE = 2001;
 
-    List<Rect> rectangleList = new ArrayList<>();
-
-
-    private Bitmap originalBitmap; // Original image bitmap
-    private Bitmap tempBitmap; // Temporary bitmap for drawing rectangles
-    private Canvas canvas; // Canvas for drawing on the temporary bitmap
-    private Paint paint; // Paint for drawing rectangles
-    private Rect cropRect; // Rectangle for cropping the image
-
-
     String cameraPermission[];
     String storagePermission[];
 
 
-    Uri imageUri;
+    Uri image_uri;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -94,23 +78,19 @@ public class MainActivity extends AppCompatActivity {
         mResultEt = findViewById(R.id.resultEt);
         mPreviewIv = findViewById(R.id.imageIv);
         fileNameEditText = findViewById(R.id.file_name_edit_text);
+        fileName = fileNameEditText.getText().toString();
 
-
-        originalBitmap = null;
-        tempBitmap = null;
-        canvas = null;
-        paint = new Paint();
-        paint.setColor(Color.RED);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(2);
-        cropRect = new Rect();
-
-
+        //camera permission
+        cameraPermission = new String[]{Manifest.permission.CAMERA,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE};
+        //storage permission
+        storagePermission = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE};
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate( R.menu.main_menu, menu);
+        getMenuInflater().inflate(R.menu.main_menu, menu);
         return true;
     }
 
@@ -151,48 +131,45 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 if (which == 0) {
                     if (!checkCameraPermission()) {
-                        // Camera permission not allowed, request it
+                        //camera permission not allowed, request it
                         requestCameraPermission();
                     } else {
-                        // Permission allowed, take picture
+                        //permission allowed, take picture
                         pickCamera();
                     }
-
                 }
 
                 if (which == 1) {
                     if (!checkStoragePermission()) {
-                        // Storage permission not allowed, request it
+                        //storage permission not allowed, request it
                         requestStoragePermission();
                     } else {
-                        // Permission allowed, pick from gallery
+                        //permission allowed, take picture
                         pickGallery();
                     }
                 }
             }
         });
         dialog.create().show();
-
-
     }
 
     private void pickGallery() {
-        // Intent to pick image from gallery
+        //intent to pick image from gallery
         Intent intent = new Intent(Intent.ACTION_PICK);
-        // Set intent type to image
+        //set intent type to image
         intent.setType("image/*");
         startActivityForResult(intent, IMAGE_PICK_GALLERY_CODE);
     }
 
     private void pickCamera() {
-        // Intent to take image from camera, it will also be saved to storage to get high-quality image
+        //intent to take image from camera, it will also be save to storage to get high quality image
         ContentValues values = new ContentValues();
-        values.put(MediaStore.Images.Media.TITLE, "NewPick"); // Title of the picture
-        values.put(MediaStore.Images.Media.DESCRIPTION, "Image To Text"); // Description of the picture
-        imageUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        values.put(MediaStore.Images.Media.TITLE, "NewPick"); //title of the picture
+        values.put(MediaStore.Images.Media.DESCRIPTION, "Image To Text"); //title of the picture
+        image_uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
 
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, image_uri);
         startActivityForResult(cameraIntent, IMAGE_PICK_CAMERA_CODE);
     }
 
@@ -201,8 +178,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean checkStoragePermission() {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                == PackageManager.PERMISSION_GRANTED;
+        boolean result = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) == (PackageManager.PERMISSION_GRANTED);
+        return result;
     }
 
     private void requestCameraPermission() {
@@ -210,21 +188,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean checkCameraPermission() {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                == PackageManager.PERMISSION_GRANTED;
+        boolean result = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CAMERA) == (PackageManager.PERMISSION_GRANTED);
+
+        boolean result1 = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) == (PackageManager.PERMISSION_GRANTED);
+        return result && result1;
     }
 
-    // Handle permission result
+    //handle permission result
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case CAMERA_REQUEST_CODE:
                 if (grantResults.length > 0) {
-                    boolean cameraAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
-                    boolean writeStorageAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                    boolean cameraAccepted = grantResults[0] ==
+                            PackageManager.PERMISSION_GRANTED;
+                    boolean writeStorageAccepted = grantResults[0] ==
+                            PackageManager.PERMISSION_GRANTED;
 
                     if (cameraAccepted && writeStorageAccepted) {
                         pickCamera();
@@ -236,7 +218,8 @@ public class MainActivity extends AppCompatActivity {
 
             case STORAGE_REQUEST_CODE:
                 if (grantResults.length > 0) {
-                    boolean writeStorageAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                    boolean writeStorageAccepted = grantResults[0] ==
+                            PackageManager.PERMISSION_GRANTED;
 
                     if (writeStorageAccepted) {
                         pickGallery();
@@ -249,102 +232,67 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    @SuppressLint("ClickableViewAccessibility")
+    //handle image result
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
-            if (requestCode == IMAGE_PICK_GALLERY_CODE || requestCode == IMAGE_PICK_CAMERA_CODE) {
-                Uri imageUri = data.getData();
-                mPreviewIv.setImageURI(imageUri);
-                try {
-                    originalBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
-                    tempBitmap = Bitmap.createBitmap(originalBitmap.getWidth(), originalBitmap.getHeight(), Bitmap.Config.RGB_565);
-                    canvas = new Canvas(tempBitmap);
-                    canvas.drawBitmap(originalBitmap, 0, 0, null);
+            if (requestCode == IMAGE_PICK_GALLERY_CODE) {
+                //got image from gallery now crop it
+                CropImage.activity(data.getData())
+                        .setGuidelines(CropImageView.Guidelines.ON) //enable image guid lines
+                        .start(this);
+            }
 
-                    mPreviewIv.setImageBitmap(tempBitmap);
-
-                    mPreviewIv.setOnTouchListener(new View.OnTouchListener() {
-                        List<Rect> cropRects = new ArrayList<>();
-                        float startX, startY, endX, endY;
-
-                        @Override
-                        public boolean onTouch(View v, MotionEvent event) {
-                            if (v.getId() == R.id.imageIv) {
-                                float touchX = event.getX();
-                                float touchY = event.getY();
-
-                                if (touchX >= 0 && touchX <= originalBitmap.getWidth() && touchY >= 0 && touchY <= originalBitmap.getHeight()) {
-                                    switch (event.getAction()) {
-                                        case MotionEvent.ACTION_DOWN:
-                                            startX = touchX;
-                                            startY = touchY;
-                                            break;
-                                        case MotionEvent.ACTION_MOVE:
-                                            endX = touchX;
-                                            endY = touchY;
-
-                                            canvas.drawBitmap(originalBitmap, 0, 0, null);
-                                            canvas.drawRect(startX, startY, endX, endY, paint);
-                                            mPreviewIv.setImageBitmap(tempBitmap);
-                                            break;
-                                        case MotionEvent.ACTION_UP:
-
-                                            if (startX != endX && startY != endY) {
-                                                cropRects.add(new Rect(
-                                                        Math.round(Math.min(startX, endX)),
-                                                        Math.round(Math.min(startY, endY)),
-                                                        Math.round(Math.max(startX, endX)),
-                                                        Math.round(Math.max(startY, endY))
-                                                ));
-
-
-                                                canvas.drawBitmap(originalBitmap, 0, 0, null);
-                                                mPreviewIv.setImageBitmap(tempBitmap);
-
-
-                                                StringBuilder sb = new StringBuilder();
-                                                for (Rect rect : cropRects) {
-
-                                                    if (rect.width() > 0 && rect.height() > 0) {
-                                                        Bitmap croppedBitmap = Bitmap.createBitmap(originalBitmap, rect.left, rect.top, rect.width(), rect.height());
-                                                        FirebaseVisionImage firebaseVisionImage = FirebaseVisionImage.fromBitmap(croppedBitmap);
-                                                        FirebaseVisionTextRecognizer textRecognizer = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
-                                                        textRecognizer.processImage(firebaseVisionImage)
-                                                                .addOnSuccessListener(new OnSuccessListener<FirebaseVisionText>() {
-                                                                    @Override
-                                                                    public void onSuccess(FirebaseVisionText firebaseVisionText) {
-                                                                        for (FirebaseVisionText.TextBlock textBlock : firebaseVisionText.getTextBlocks()) {
-                                                                            sb.append(textBlock.getText()).append("\n");
-                                                                        }
-                                                                        mResultEt.setText(sb.toString());
-                                                                    }
-                                                                })
-                                                                .addOnFailureListener(new OnFailureListener() {
-                                                                    @Override
-                                                                    public void onFailure(@NonNull Exception e) {
-                                                                        Toast.makeText(MainActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                                                    }
-                                                                });
-                                                    }
-                                                }
-                                            }
-                                            break;
-                                    }
-                                }
-                            }
-                            return true;
-                        }
-                    });
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
+            if (requestCode == IMAGE_PICK_CAMERA_CODE) {
+                //got image from camera now crop it
+                CropImage.activity(image_uri)
+                        .setGuidelines(CropImageView.Guidelines.ON) //enable image guid lines
+                        .start(this);
             }
         }
-    }
 
+        //get cropped image
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+            if (resultCode == RESULT_OK) {
+                Uri resultUri = result.getUri(); //get image uri
+                //set image to image view
+                mPreviewIv.setImageURI(resultUri);
+
+                //get drawable bitmap for text recognition
+                BitmapDrawable bitmapDrawable = (BitmapDrawable) mPreviewIv.getDrawable();
+                Bitmap bitmap = bitmapDrawable.getBitmap();
+
+                TextRecognizer recognizer = new TextRecognizer.Builder(getApplicationContext()).build();
+
+                if (!recognizer.isOperational()) {
+                    Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show();
+                } else {
+                    Frame frame = new Frame.Builder().setBitmap(bitmap).build();
+                    SparseArray<TextBlock> items = recognizer.detect(frame);
+                    StringBuilder sb = new StringBuilder();
+                    //get text from sb until there is no text
+                    for (int i = 0; i < items.size(); i++) {
+                        TextBlock myItem = items.valueAt(i);
+                        sb.append(myItem.getValue());
+                        sb.append("\n");
+                    }
+
+                    //set text to edit text
+                    mResultEt.setText(sb.toString());
+                }
+            } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+                //if there is any error show it
+                Exception error = result.getError();
+                Toast.makeText(this, "" + error, Toast.LENGTH_SHORT).show();
+            }
+
+
+        }
+
+
+    }
 
     public void buttonCreateExcel(View view) {
 
@@ -366,46 +314,35 @@ public class MainActivity extends AppCompatActivity {
             new AlertDialog.Builder(this)
                     .setTitle("Warning")
                     .setMessage("A file with the same name already exists. Do you want to overwrite it?")
-                    .setIcon(R.drawable.background)
-                    .setPositiveButton(android.R.string.yes, (dialog, whichButton) -> createExcelFile(filePath))
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) {
+                            createExcelFile(filePath);
+                        }
+                    })
                     .setNegativeButton(android.R.string.no, null).show();
         } else {
             createExcelFile(filePath);
         }
     }
 
-    private void createExcelFile(File file) {
+    private void createExcelFile(File file ){
+
+
+
         HSSFWorkbook hssfWorkbook = new HSSFWorkbook();
         HSSFSheet hssfSheet = hssfWorkbook.createSheet("Invoice Sheet");
 
-        String text = mResultEt.getText().toString().trim();
-        String[] textParts = text.split("\\s+", 10);
+        HSSFRow hssfRow = hssfSheet.createRow(0);
+        HSSFCell hssfCell = hssfRow.createCell(0);
 
-        // Create the first row and put the first two words in the first cell
-        HSSFRow firstRow = hssfSheet.createRow(0);
-        HSSFCell cell1 = firstRow.createCell(0);
-        cell1.setCellValue(textParts[0] + " " + textParts[1]);
-        hssfSheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 1));
-
-        // Create the second row and put the next three words in one cell
-        HSSFRow secondRow = hssfSheet.createRow(1);
-        HSSFCell cell2 = secondRow.createCell(0);
-        cell2.setCellValue(textParts[2] + " " + textParts[3] + " " + textParts[4]);
-        hssfSheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 2));
-
-        // Create the third row and put the remaining text in one cell
-        HSSFRow thirdRow = hssfSheet.createRow(2);
-        HSSFCell cell3 = thirdRow.createCell(0);
-        cell3.setCellValue(textParts[5]);
-
-        // Create the fourth row and put the words from line 6 and line 10 in one cell
-        HSSFRow fourthRow = hssfSheet.createRow(3);
-        HSSFCell cell4 = fourthRow.createCell(0);
-        cell4.setCellValue(textParts[9] + " " + textParts[37]); // assuming line 6 is the 10th line and line 10 is the 38th line
-        hssfSheet.addMergedRegion(new CellRangeAddress(3, 3, 0, 2));
+        hssfCell.setCellValue(mResultEt.getText().toString());
 
         try {
-            FileOutputStream fileOutputStream = new FileOutputStream(file);
+
+
+
+            FileOutputStream fileOutputStream = new FileOutputStream(filePath);
             hssfWorkbook.write(fileOutputStream);
 
             if (fileOutputStream != null) {
@@ -417,5 +354,6 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
             Toast.makeText(MainActivity.this, "Error creating Excel file", Toast.LENGTH_SHORT).show();
         }
+
     }
 }
