@@ -31,7 +31,6 @@
                     android:padding="5dp">
 
                     <TextView
-
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Result"
@@ -39,7 +38,6 @@
                         android:textSize="20sp" />
 
                     <EditText
-
                         android:id="@+id/resultEt"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -80,71 +78,75 @@
                         android:layout_height="wrap_content"
                         android:maxHeight="250dp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
 
-            <LinearLayout
+            </androidx.cardview.widget.CardView>
+            <!-- Inside the "Image Preview CardView" LinearLayout -->
+            <!-- Inside the "Image Preview CardView" LinearLayout -->
+            <Button
+                android:id="@+id/cropAgainButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Crop Again"
+                android:onClick="onCropAgainClicked" />
+
+
+
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                app:cardBackgroundColor="@android:color/white"
+                app:cardCornerRadius="3dp"
+                app:cardElevation="3dp"
+                app:cardUseCompatPadding="true">
 
-
-
-
-                <androidx.cardview.widget.CardView
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:cardBackgroundColor="@android:color/white"
-                    app:cardCornerRadius="3dp"
-                    app:cardElevation="3dp"
-                    app:cardUseCompatPadding="true">
+                    android:orientation="vertical"
+                    android:padding="5dp">
 
-                    <LinearLayout
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="5dp">
+                        android:text="File Name"
+                        android:textColor="@color/black"
+                        android:textSize="20sp" />
 
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="File Name"
-                            android:textColor="@color/black"
-                            android:textSize="20sp" />
+                    <EditText
+                        android:id="@+id/file_name_edit_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@null"
+                        android:hint="Enter file name"
+                        android:minHeight="48dp"
+                        android:padding="5dp"
+                        android:textColor="@color/black" />
 
-                        <EditText
-                            android:id="@+id/file_name_edit_text"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@null"
-                            android:hint="Enter file name"
-                            android:minHeight="48dp"
-                            android:padding="5dp"
-                            android:textColor="@color/black" />
+                </LinearLayout>
 
-                    </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="4dp"
+                app:cardUseCompatPadding="true">
 
-                </androidx.cardview.widget.CardView>
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:cardCornerRadius="8dp"
-                    app:cardElevation="4dp"
-                    app:cardUseCompatPadding="true">
+                <!-- CardView content here -->
 
-                    <!-- CardView content here -->
+            </androidx.cardview.widget.CardView>
 
-                </androidx.cardview.widget.CardView>
-
-                <Button
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Create Excel"
-                    android:layout_gravity="center_horizontal"
-                    android:onClick="buttonCreateExcel"/>
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create Excel"
+                android:layout_gravity="center_horizontal"
+                android:onClick="buttonCreateExcel"
+                tools:ignore="UsingOnClickInXml" />
 
 
 
-            </LinearLayout>
+
 
         </LinearLayout>
     </ScrollView>

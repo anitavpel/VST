@@ -1,14 +1,5 @@
 package com.android.vst;
 
-
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
@@ -17,30 +8,32 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
-import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import com.google.android.gms.vision.Frame;
-import com.google.android.gms.vision.text.TextBlock;
-import com.google.android.gms.vision.text.TextRecognizer;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.ml.vision.FirebaseVision;
+import com.google.firebase.ml.vision.common.FirebaseVisionImage;
+import com.google.firebase.ml.vision.text.FirebaseVisionText;
+import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
-
-/*
-
- */
-
-
-import android.os.Environment;
-import android.view.View;
 
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
@@ -49,27 +42,26 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private EditText mResultEt,fileNameEditText;
     private ImageView mPreviewIv;
-    String fileName;
+    private List<Rect> croppedRegions;
+    private Uri originalImageUri;
+    private String fileName;
     private File filePath;
+    private Uri selectedImageUri;
 
-
-
-
-    //Permission Code
     private static final int CAMERA_REQUEST_CODE = 200;
     private static final int STORAGE_REQUEST_CODE = 400;
     private static final int IMAGE_PICK_GALLERY_CODE = 1000;
     private static final int IMAGE_PICK_CAMERA_CODE = 2001;
 
-    String cameraPermission[];
-    String storagePermission[];
-
-
-    Uri image_uri;
+    private String[] cameraPermission;
+    private String[] storagePermission;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -77,23 +69,28 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE}, PackageManager.PERMISSION_GRANTED);
         ActionBar actionBar = getSupportActionBar();
         actionBar.setSubtitle("Click + button to insert image");
 
-        mResultEt = findViewById(R.id.resultEt);
+        mResultEt = findViewById(R.id.resultEt); // Add this line to find the mResultEt view
+        fileNameEditText = findViewById(R.id.file_name_edit_text); // Find the fileNameEditText view
+
         mPreviewIv = findViewById(R.id.imageIv);
-        fileNameEditText = findViewById(R.id.file_name_edit_text);
-        fileName = fileNameEditText.getText().toString();
+        croppedRegions = new ArrayList<>();
 
-        //camera permission
-        cameraPermission = new String[]{Manifest.permission.CAMERA,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE};
-        //storage permission
+        cameraPermission = new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE};
         storagePermission = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE};
-    }
 
+        if (savedInstanceState != null) {
+            originalImageUri = savedInstanceState.getParcelable("originalImageUri");
+            croppedRegions = savedInstanceState.getParcelableArrayList("croppedRegions");
+
+            if (originalImageUri != null) {
+                mPreviewIv.setImageURI(originalImageUri);
+                recognizeText(FirebaseVisionImage.fromBitmap(getCroppedBitmap(originalImageUri)));
+            }
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -107,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
             case R.id.addImage:
                 showImageImportDialog();
                 break;
-
             case R.id.about:
                 dialogAbout();
                 break;
@@ -131,27 +127,21 @@ public class MainActivity extends AppCompatActivity {
     private void showImageImportDialog() {
         String[] items = {"Camera", "Gallery"};
         AlertDialog.Builder dialog = new AlertDialog.Builder(this);
-
         dialog.setTitle("Select Image");
         dialog.setItems(items, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (which == 0) {
                     if (!checkCameraPermission()) {
-                        //camera permission not allowed, request it
                         requestCameraPermission();
                     } else {
-                        //permission allowed, take picture
                         pickCamera();
                     }
                 }
-
                 if (which == 1) {
                     if (!checkStoragePermission()) {
-                        //storage permission not allowed, request it
                         requestStoragePermission();
                     } else {
-                        //permission allowed, take picture
                         pickGallery();
                     }
                 }
@@ -161,22 +151,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void pickGallery() {
-        //intent to pick image from gallery
         Intent intent = new Intent(Intent.ACTION_PICK);
-        //set intent type to image
         intent.setType("image/*");
         startActivityForResult(intent, IMAGE_PICK_GALLERY_CODE);
     }
 
     private void pickCamera() {
-        //intent to take image from camera, it will also be save to storage to get high quality image
         ContentValues values = new ContentValues();
-        values.put(MediaStore.Images.Media.TITLE, "NewPick"); //title of the picture
-        values.put(MediaStore.Images.Media.DESCRIPTION, "Image To Text"); //title of the picture
-        image_uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        values.put(MediaStore.Images.Media.TITLE, "NewPick");
+        values.put(MediaStore.Images.Media.DESCRIPTION, "Image To Text");
+        originalImageUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
 
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, image_uri);
+        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, originalImageUri);
         startActivityForResult(cameraIntent, IMAGE_PICK_CAMERA_CODE);
     }
 
@@ -185,9 +172,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean checkStoragePermission() {
-        boolean result = ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE) == (PackageManager.PERMISSION_GRANTED);
-        return result;
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestCameraPermission() {
@@ -195,26 +180,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean checkCameraPermission() {
-        boolean result = ContextCompat.checkSelfPermission(this,
-                Manifest.permission.CAMERA) == (PackageManager.PERMISSION_GRANTED);
-
-        boolean result1 = ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE) == (PackageManager.PERMISSION_GRANTED);
-        return result && result1;
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
     }
 
-    //handle permission result
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case CAMERA_REQUEST_CODE:
                 if (grantResults.length > 0) {
-                    boolean cameraAccepted = grantResults[0] ==
-                            PackageManager.PERMISSION_GRANTED;
-                    boolean writeStorageAccepted = grantResults[0] ==
-                            PackageManager.PERMISSION_GRANTED;
-
+                    boolean cameraAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                    boolean writeStorageAccepted = grantResults[1] == PackageManager.PERMISSION_GRANTED;
                     if (cameraAccepted && writeStorageAccepted) {
                         pickCamera();
                     } else {
@@ -222,12 +199,9 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 break;
-
             case STORAGE_REQUEST_CODE:
                 if (grantResults.length > 0) {
-                    boolean writeStorageAccepted = grantResults[0] ==
-                            PackageManager.PERMISSION_GRANTED;
-
+                    boolean writeStorageAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
                     if (writeStorageAccepted) {
                         pickGallery();
                     } else {
@@ -238,69 +212,84 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-    //handle image result
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
         if (resultCode == RESULT_OK) {
             if (requestCode == IMAGE_PICK_GALLERY_CODE) {
-                //got image from gallery now crop it
-                CropImage.activity(data.getData())
-                        .setGuidelines(CropImageView.Guidelines.ON) //enable image guid lines
+                selectedImageUri = data.getData(); // Store the original image URI from the gallery
+                CropImage.activity(selectedImageUri)
+                        .setGuidelines(CropImageView.Guidelines.ON)
                         .start(this);
             }
-
             if (requestCode == IMAGE_PICK_CAMERA_CODE) {
-                //got image from camera now crop it
-                CropImage.activity(image_uri)
-                        .setGuidelines(CropImageView.Guidelines.ON) //enable image guid lines
+                selectedImageUri = originalImageUri; // Store the original image URI from the camera
+                CropImage.activity(originalImageUri)
+                        .setGuidelines(CropImageView.Guidelines.ON)
                         .start(this);
             }
         }
 
-        //get cropped image
+
         if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
             CropImage.ActivityResult result = CropImage.getActivityResult(data);
             if (resultCode == RESULT_OK) {
-                Uri resultUri = result.getUri(); //get image uri
-                //set image to image view
-                mPreviewIv.setImageURI(resultUri);
-
-                //get drawable bitmap for text recognition
-                BitmapDrawable bitmapDrawable = (BitmapDrawable) mPreviewIv.getDrawable();
-                Bitmap bitmap = bitmapDrawable.getBitmap();
-
-                TextRecognizer recognizer = new TextRecognizer.Builder(getApplicationContext()).build();
-
-                if (!recognizer.isOperational()) {
-                    Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show();
-                } else {
-                    Frame frame = new Frame.Builder().setBitmap(bitmap).build();
-                    SparseArray<TextBlock> items = recognizer.detect(frame);
-                    StringBuilder sb = new StringBuilder();
-                    //get text from sb until there is no text
-                    for (int i = 0; i < items.size(); i++) {
-                        TextBlock myItem = items.valueAt(i);
-                        sb.append(myItem.getValue());
-                        sb.append("\n");
-                    }
-
-                    //set text to edit text
-                    mResultEt.setText(sb.toString());
-                }
+                originalImageUri = result.getUri();
+                mPreviewIv.setImageURI(originalImageUri);
+                recognizeText(FirebaseVisionImage.fromBitmap(getCroppedBitmap(originalImageUri)));
             } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
-                //if there is any error show it
                 Exception error = result.getError();
                 Toast.makeText(this, "" + error, Toast.LENGTH_SHORT).show();
             }
-
-
         }
-
-
     }
 
+    private Bitmap getCroppedBitmap(Uri uri) {
+        Bitmap bitmap = null;
+        try {
+            bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return bitmap;
+    }
+
+    private void recognizeText(FirebaseVisionImage image) {
+        FirebaseVisionTextRecognizer textRecognizer = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
+        textRecognizer.processImage(image)
+                .addOnSuccessListener(new OnSuccessListener<FirebaseVisionText>() {
+                    @Override
+                    public void onSuccess(FirebaseVisionText firebaseVisionText) {
+                        processTextRecognitionResult(firebaseVisionText);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(MainActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void processTextRecognitionResult(FirebaseVisionText visionText) {
+        StringBuilder sb = new StringBuilder();
+        List<FirebaseVisionText.TextBlock> textBlocks = visionText.getTextBlocks();
+
+        if (textBlocks.size() == 0) {
+            Toast.makeText(this, "No text found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Append the newly recognized text to the existing text (if any)
+        if (mResultEt.getText() != null && mResultEt.getText().length() > 0) {
+            sb.append(mResultEt.getText().toString());
+        }
+
+        for (FirebaseVisionText.TextBlock textBlock : textBlocks) {
+            String text = textBlock.getText();
+            sb.append(text).append("\n");
+        }
+
+        mResultEt.setText(sb.toString());
+    }
     public void buttonCreateExcel(View view) {
 
 
@@ -362,5 +351,25 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, "Error creating Excel file", Toast.LENGTH_SHORT).show();
         }
 
+    }
+
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelable("originalImageUri", originalImageUri);
+        outState.putParcelableArrayList("croppedRegions", new ArrayList<>(croppedRegions));
+    }
+
+    // The function to handle the "Crop Again" button click event
+    public void onCropAgainClicked(View view) {
+        if (selectedImageUri != null) {
+            // Re-open the cropping activity with the original image URI
+            CropImage.activity(selectedImageUri)
+                    .setGuidelines(CropImageView.Guidelines.ON)
+                    .start(this);
+        } else {
+            Toast.makeText(this, "No image to crop again.", Toast.LENGTH_SHORT).show();
+        }
     }
 }
